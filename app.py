@@ -1,5 +1,6 @@
 from flask import Flask, url_for    
 from markupsafe import escape
+import sqlite3
 
 app = Flask(__name__)
 
@@ -49,3 +50,46 @@ def links():
     <div>
     <a href="{url_for('verificar_aprobacion', nota= '8')}">Verificar Nota</a>
 """
+db = None
+
+
+def dict_factory(cursor, row):
+  """Arma un diccionario con los valores de la fila."""
+  fields = [column[0] for column in cursor.description]
+  return {key: value for key, value in zip(fields, row)}
+
+
+def abrirConexion():
+   global db
+   db = sqlite3.connect("instance/datos.sqlite")
+   db.row_factory = dict_factory
+
+
+def cerrarConexion():
+   global db
+   db.close()
+   db = None
+
+
+@app.route("/test-db")
+def testDB():
+   abrirConexion()
+   cursor = db.cursor()
+   cursor.execute("SELECT COUNT(*) AS cant FROM usuarios; ")
+   res = cursor.fetchone()
+   registros = res["cant"]
+   cerrarConexion()
+   return f"Hay {registros} registros en la tabla usuarios"
+
+
+@app.route("/datos-db")
+def datosDB():
+   abrirConexion()
+   cursor = db.cursor()
+   cursor.execute("SELECT usuario,email FROM usuarios; ")
+   res = cursor.fetchone()
+   email = res["email"]
+   usuario = res["usuario"]
+
+   cerrarConexion()
+   return f"El mail de {usuario} es {email} en la db"
